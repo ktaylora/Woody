@@ -63,8 +63,9 @@ def gdal_retile(**kwargs):
 
   if os.path.exists(TARGET_DIR):
     logger.debug("Existing gdal_retile target directory found : " + \
-      TARGET_DIR + \
-      "; Assuming you want to use existing tiles and skipping GeoTIFF file splitting operations")
+      TARGET_DIR)
+    logger.debug("Assuming you want to use existing tiles and \
+      skipping GeoTIFF file splitting operations")
     return
   else:
     os.mkdir(TARGET_DIR)
@@ -83,8 +84,9 @@ def rf_predict(**kwargs):
     os.path.join('.','random_forest_predict_across_geotiff_fragments.R'))
   GEOTIFF_SEGMENTS_DIR = kwargs.get('geotiff_segments_path',
     os.path.join('.',args.splits_target_dir))
-  subprocess.run("RScript", R_SCRIPT_SOURCE_PATH,
-    GEOTIFF_SEGMENTS_DIR)
+  logger.debug("Calling: Rscript " + R_SCRIPT_SOURCE_PATH + ' ' + GEOTIFF_SEGMENTS_DIR)
+  subprocess.run(['Rscript', R_SCRIPT_SOURCE_PATH,
+    GEOTIFF_SEGMENTS_DIR])
 
 def gdal_merge(**kwargs):
   """
