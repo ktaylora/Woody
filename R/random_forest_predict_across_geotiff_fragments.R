@@ -44,12 +44,25 @@ geotiff_segments <- list.files(
 # don't try and use any lurking _prediction rasters if they are in the CWD
 geotiff_segments <- geotiff_segments[!grepl(geotiff_segments, pattern="_pred")]
 
-band_names  <- c(
-  'R','G','B','N','NDVI','NDVI_3','NDVI_9',
-  'NDVI_18','NDVI_36','NDVI_SD_3','NDVI_SD_9',
-  'NDVI_SD_18','NDVI_SD_36','ELEV','ELEV_SD_11',
-  'ASPECT','SLOPE'
-)  
+# Figure out the band names using gdalinfo from our original EE GeoTIFF files
+# Otherwise, just guess the band names using sane defaults and see if any errors 
+# are raised
+
+band_names <- list.files(paste(GEOTIFF_EE_IMAGE_SEGMENTS_DIR, "..", sep="/"), pattern="tif$", recursive=F, full.names=T)[1]
+
+if( length(band_names) > 0 ) {
+  band_names <- system(paste('gdalinfo', band_names),  intern = TRUE)
+  band_names <- sapply(strsplit(band_names[grepl(band_names, pattern="Desc")], split=" = "), function(i) i[2])
+} else {
+  band_names  <- c(
+    'R','G','B','N','NDVI','NDVI_3','NDVI_9',
+    'NDVI_18','NDVI_36','NDVI_SD_3','NDVI_SD_9',
+    'NDVI_SD_18','NDVI_SD_36','ELEV','ELEV_SD_11',
+    'ASPECT','SLOPE'
+  )
+}
+
+
 
 cat("DEBUG: Using band names:",paste(band_names, collapse=", "),"\n")
 
@@ -62,7 +75,7 @@ cl <- parallel::makeCluster(
 
 parallel::clusterExport(
   cl, 
-  varlist=c("m_rf", "geotiff_segments", "band_names")
+  varlist=c("m_rf", "geotiff_segments", "band_names", "GEOTIFF_EE_IMAGE_SEGMENTS_DIR")
 )
 
 result <- try(parallel::parLapply(
@@ -145,7 +158,7 @@ result <- try(parallel::parLapply(
           format='GTiff'
       )
       cat("DEBUG: Finished random forests run for segment",w,"\n")
-      w <- list.files('.', pattern="tif$")
+      w <- list.files(GEOTIFF_EE_IMAGE_SEGMENTS_DIR, pattern="tif$")
       cat(
         "DEBUG: Percent complete -- ", 
         round( length(w[grepl(w, pattern="_prediction")]) / length(w[!grepl(w, pattern="_prediction")]) , 2),
