@@ -71,6 +71,7 @@ def gdal_retile(**kwargs):
     os.mkdir(TARGET_DIR)
 
   progress = 0
+
   for segment in GEOTIFF_FILES:
     subprocess.run(["gdal_retile.py", "-ps", str(PIXEL_SIZE), str(PIXEL_SIZE), "-targetDir", TARGET_DIR, segment])
     progress += 1
@@ -95,6 +96,16 @@ def gdal_merge(**kwargs):
   GEOTIFF_SEGMENTS_DIR = kwargs.get('geotiff_segments_path', os.path.join('.', args.splits_target_dir))
   logger.debug("Calling gdal_mergy.py using our prediction segments")
   subprocess.run("gdal_merge.py",'-o', args.outfile, os.path.join(GEOTIFF_SEGMENTS_DIR,'*_prediction.tif'))
+
+def gdal_aggregate_sum_by_usng_unit(**kwargs):
+  """
+  Wrapper for gdal/beatbox that 
+  """
+  VECTOR_GEOMETRIES = kwargs.get('usng_units', None)
+  GEOTIFF_SEGMENT = kwargs.get('geotiff_segment', None)
+  TARGET_VALUES = kwargs.get('target_values', [1,2])
+  pass
+
 #
 # Main
 #
@@ -115,6 +126,7 @@ if __name__ == "__main__":
   except ValueError as e:
     logger.debug("Cannot pass gdal_retile.py an empty list of GeoTIFFs -- this shouldn't happen; quitting")
     sys.exit(1)
+
   if len(dig_path(path=os.path.join(args.geotiff_dir_path, args.splits_target_dir))) == 0:
     logger.debug("gdal_retile target 'splits' directory didn't appear to contain any GeoTIFF files -- this shouldn't happen; quitting")
     sys.exit(1)
@@ -128,3 +140,6 @@ if __name__ == "__main__":
     sys.exit(1)
   else:
     gdal_merge(geotiff_segments_path=os.path.join(args.geotiff_dir_path, args.splits_target_dir))
+
+  logger.debug("DONE")
+  sys.exit(0)
