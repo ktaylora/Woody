@@ -1,4 +1,4 @@
-#!/opt/anaconda/anaconda3/bin/python
+#!/usr/bin/env python3
 
 """
 Random Forest Predict Across GeoTIFF Fragments
@@ -16,6 +16,9 @@ import os
 import subprocess
 
 import glob
+
+from beatbox.vector import Vector
+from beatbox.raster import Raster
 
 #
 # Be verbose by default
@@ -64,8 +67,8 @@ def gdal_retile(**kwargs):
   if os.path.exists(TARGET_DIR):
     logger.debug("Existing gdal_retile target directory found : " + \
       TARGET_DIR)
-    logger.debug("Assuming you want to use existing tiles and \
-      skipping GeoTIFF file splitting operations")
+    logger.debug("Assuming you want to use existing tiles and " + \
+      "skipping GeoTIFF file splitting operations")
     return
   else:
     os.mkdir(TARGET_DIR)
@@ -93,18 +96,25 @@ def gdal_merge(**kwargs):
   """
   Wrapper for gdal_merge : e.g., gdal_merge.py -o "../$DESTINATION_FILENAME" *_prediction.tif
   """
-  GEOTIFF_SEGMENTS_DIR = kwargs.get('geotiff_segments_path', os.path.join('.', args.splits_target_dir))
-  logger.debug("Calling gdal_mergy.py using our prediction segments")
-  subprocess.run("gdal_merge.py",'-o', args.outfile, os.path.join(GEOTIFF_SEGMENTS_DIR,'*_prediction.tif'))
+  GEOTIFF_SEGMENTS_DIR = kwargs.get('geotiff_segments_path', args.splits_target_dir)
+  
+  logger.debug("Calling gdal_merge.py -o " + args.outfile + " using our prediction segments in : "+ GEOTIFF_SEGMENTS_DIR)
+  
+  merge_runner = ["gdal_merge.py",'-o', args.outfile]
+  merge_runner = merge_runner + glob.glob(os.path.join(GEOTIFF_SEGMENTS_DIR,'*_prediction.tif'))
+
+  subprocess.run(merge_runner)
 
 def gdal_aggregate_sum_by_usng_unit(**kwargs):
   """
   Wrapper for gdal/beatbox that 
   """
   VECTOR_GEOMETRIES = kwargs.get('usng_units', None)
-  GEOTIFF_SEGMENT = kwargs.get('geotiff_segment', None)
+  GEOTIFF_PREDICTION_RASTER = kwargs.get('geotiff_segment', None)
   TARGET_VALUES = kwargs.get('target_values', [1,2])
-  pass
+  
+  vector_units = Vector(VECTOR_GEOMETRIES).to_geodataframe()
+  prediction_raster = Raster(GEOTIFF_PREDICTION_RASTER).to_georaster()
 
 #
 # Main
@@ -130,8 +140,6 @@ if __name__ == "__main__":
   if len(dig_path(path=os.path.join(args.geotiff_dir_path, args.splits_target_dir))) == 0:
     logger.debug("gdal_retile target 'splits' directory didn't appear to contain any GeoTIFF files -- this shouldn't happen; quitting")
     sys.exit(1)
-
-  logger.debug("Launching 'RScript' interface with our fitted Random Forests model object")
   
   rf_predict(geotiff_segments_path=os.path.join(args.geotiff_dir_path, args.splits_target_dir))
 

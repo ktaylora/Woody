@@ -62,14 +62,15 @@ if( length(band_names) > 0 ) {
   )
 }
 
-
+# Determine if we need to re-fit our random forests to accomodate shifts in bands for this
+# NAIP interval
 
 cat("DEBUG: Using band names:",paste(band_names, collapse=", "),"\n")
 
 cat("DEBUG: Starting workers...\n")
 
 cl <- parallel::makeCluster(
-  floor(parallel::detectCores()*0.8), 
+  floor(parallel::detectCores()*0.6), 
   outfile=''
 )
 
@@ -168,13 +169,16 @@ result <- try(parallel::parLapply(
     }
 ))
 
+cat("DEBUG: Cleaning up our 'R' cluster interface\n")
+parallel::stopCluster(cl); rm(cl); gc()
+
 cat("DEBUG: DONE\n")
 
 if( class(result) == "try-error" ){
   cat("DEBUG: (But we encountered some problems)\n")
-  quit(save = "no", status = FALSE)
-} else {
   quit(save = "no", status = TRUE)
+} else {
+  quit(save = "no", status = FALSE)
 }
 
 
