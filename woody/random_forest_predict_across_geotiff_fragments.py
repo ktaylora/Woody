@@ -94,13 +94,13 @@ def rf_predict(**kwargs):
 
 def gdal_merge(**kwargs):
   """
-  Wrapper for gdal_merge : e.g., gdal_merge.py -o "../$DESTINATION_FILENAME" *_prediction.tif
+  Wrapper for gdal_merge
   """
   GEOTIFF_SEGMENTS_DIR = kwargs.get('geotiff_segments_path', args.splits_target_dir)
   
-  logger.debug("Calling gdal_merge.py -o " + args.outfile + " using our prediction segments in : "+ GEOTIFF_SEGMENTS_DIR)
+  logger.debug("Calling gdal_merge.py -ot Byte -o " + args.outfile + " using our prediction segments in : "+ GEOTIFF_SEGMENTS_DIR)
   
-  merge_runner = ["gdal_merge.py",'-o', args.outfile]
+  merge_runner = ["gdal_merge.py",'-ot','Byte', '-o', args.outfile]
   merge_runner = merge_runner + glob.glob(os.path.join(GEOTIFF_SEGMENTS_DIR,'*_prediction.tif'))
 
   subprocess.run(merge_runner)
