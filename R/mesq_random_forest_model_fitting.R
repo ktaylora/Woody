@@ -119,10 +119,11 @@ if( DO_LOCAL_EXTRACTION ){
     stop()
   }
 
-  # Drop any lurking non-sense fields in our training data
+   # Drop any lurking non-sense fields in our training data
   EXPLANATORY_COVS <- colnames(training_data)
-    EXPLANATORY_COVS <- EXPLANATORY_COVS[grepl(EXPLANATORY_COVS, pattern="type|ndvi|gf|^r$|^g$|^b$|^n$|lon|lat")]
-    
+    EXPLANATORY_COVS <- EXPLANATORY_COVS[grepl(EXPLANATORY_COVS, pattern="type|ndvi|g_|^r$|^g$|^b$|^n$|elev|aspect|slope|lon|lat")]
+  cat("DEBUG: Using variables:", paste(EXPLANATORY_COVS, collapse=","), "\n")
+
   training_data <- training_data[,EXPLANATORY_COVS]
 }
 

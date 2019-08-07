@@ -53,19 +53,40 @@ band_names <- list.files(paste(GEOTIFF_EE_IMAGE_SEGMENTS_DIR, "..", sep="/"), pa
 if( length(band_names) > 0 ) {
   band_names <- system(paste('gdalinfo', band_names),  intern = TRUE)
   band_names <- sapply(strsplit(band_names[grepl(band_names, pattern="Desc")], split=" = "), function(i) i[2])
+} 
+
+if (  length(band_names) > 0 ){
+  cat("DEBUG: Band names available:",paste(band_names, collapse=", "),"\n")
 } else {
-  band_names  <- c(
-    'R','G','B','N','NDVI','NDVI_3','NDVI_9',
-    'NDVI_18','NDVI_36','NDVI_SD_3','NDVI_SD_9',
-    'NDVI_SD_18','NDVI_SD_36','ELEV','ELEV_SD_11',
-    'ASPECT','SLOPE'
-  )
+  cat("DEBUG: Didn't have any source rasters available to determine band names -- quitting\n")
+  quit("no", 1)
 }
 
 # Determine if we need to re-fit our random forests to accomodate shifts in bands for this
 # NAIP interval
-
-cat("DEBUG: Using band names:",paste(band_names, collapse=", "),"\n")
+if ( sum(grepl(band_names, pattern="G_|GF_")) > 0 ) {
+  cat("DEBUG: Detected alternate green fraction used in input bands -- refitting RF model\n")
+  training_data_alt_gf <- strsplit(TRAINING_DATA, split="/")[[1]]
+  training_data_alt_gf <- paste(training_data_alt_gf[1:(length(training_data_alt_gf)-1)], collapse="/")
+  training_data_alt_gf <- list.files(training_data_alt_gf, pattern=".*alt_green.*.[.]geojson", full.names=T)
+  training_data_alt_gf <- suppressWarnings(suppressMessages(rgdal::readOGR(training_data_alt_gf, require_geomType='wkbPoint', verbose=F)))
+  
+  coords <- sp::spTransform(training_data_alt_gf, sp::CRS(raster::projection("+init=epsg:4326")))@coords
+    colnames(coords) <- c("lon","lat")
+  training_data_alt_gf@data <- cbind(training_data_alt_gf@data, coords)
+  
+  colnames(training_data_alt_gf@data) <- tolower(colnames(training_data_alt_gf@data))
+  colnames(training_data_alt_gf@data) <- gsub(colnames(training_data_alt_gf@data), pattern="g_", replacement="gf_")
+  
+  m_rf <- randomForest::randomForest(
+      as.factor(type)~r + b + g + gf + gf_3 + gf_18 + gf_36 + gf_sd_3 + gf_sd_9 + gf_sd_18 + gf_sd_36 + lat + lon, 
+      data=training_data_alt_gf@data,
+      do.trace=F, 
+      norm.votes=T, 
+      importance=T, 
+      ntree=N_TREES
+  )
+}
 
 cat("DEBUG: Starting workers...\n")
 

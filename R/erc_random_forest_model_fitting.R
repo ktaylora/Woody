@@ -112,9 +112,9 @@ if( DO_LOCAL_EXTRACTION ){
   if( sum(grepl(colnames(training_data), pattern="ndvi")) > 0 ){
     cat("DEBUG: Looks like we are using NDVI as our greenness index\n")
     GREENESS_INDEX <- "ndvi"
-  } else if ( sum(grepl(colnames(training_data), pattern="green")) > 0 ) {
+  } else if ( sum(grepl(colnames(training_data), pattern="g_")) > 0 ) {
     cat("DEBUG: Looks like we are using an alternative greeness index specified by the user (e.g., as 'green_') \n")
-    GREENESS_INDEX <- "green"
+    GREENESS_INDEX <- "gf"
   } else {
     cat("DEBUG: Couldn't find a suitable greeness index in input data -- this shouldn't happen\n")
     stop()
@@ -122,8 +122,8 @@ if( DO_LOCAL_EXTRACTION ){
 
   # Drop any lurking non-sense fields in our training data
   EXPLANATORY_COVS <- colnames(training_data)
-    EXPLANATORY_COVS <- EXPLANATORY_COVS[grepl(EXPLANATORY_COVS, pattern="type|ndvi|green|^r$|^g$|^b$|^n$|lon|lat")]
-    
+    EXPLANATORY_COVS <- EXPLANATORY_COVS[grepl(EXPLANATORY_COVS, pattern="type|ndvi|g_|^r$|^g$|^b$|^n$|elev|aspect|slope|lon|lat")]
+  cat("DEBUG: Using explanatory variables:", paste(EXPLANATORY_COVS, collapse=","), "\n")
   training_data <- training_data[,EXPLANATORY_COVS]
 }
 
