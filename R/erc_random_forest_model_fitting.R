@@ -92,6 +92,9 @@ if( DO_LOCAL_EXTRACTION ){
     require_geomType='wkbPoint'
   )))
 
+  cat("DEBUG: Number of training records:\n")
+  print(table(training_data$type))
+  
   cat("DEBUG: Cleaning column names and affixing latitude & longitude (if missing)\n")
   colnames(training_data@data) <- tolower(colnames(training_data@data))
 
@@ -123,7 +126,7 @@ if( DO_LOCAL_EXTRACTION ){
   # Drop any lurking non-sense fields in our training data
   EXPLANATORY_COVS <- colnames(training_data)
     EXPLANATORY_COVS <- EXPLANATORY_COVS[grepl(EXPLANATORY_COVS, pattern="type|ndvi|g_|^r$|^g$|^b$|^n$|elev|aspect|slope|lon|lat")]
-  cat("DEBUG: Using explanatory variables:", paste(EXPLANATORY_COVS, collapse=","), "\n")
+  cat("DEBUG: Pool of explanatory/response variables available:", paste(EXPLANATORY_COVS, collapse=","), "\n")
   training_data <- training_data[,EXPLANATORY_COVS]
 }
 
@@ -157,7 +160,7 @@ training_data <- training_data[,EXPLANATORY_COVS]
 testing <- sample(1:nrow(training_data), size=0.2*nrow(training_data))
 training <- which(!(1:nrow(training_data) %in% testing))
 
-cat("DEBUG: Fitting random forests: ")
+cat("DEBUG: Fitting random forests\n")
 
 # fit a throw-away random forests model 
 

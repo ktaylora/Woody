@@ -11,22 +11,23 @@ for each segment (saved as a raster file). The script will then merge the
 results together into a single (small) GeoTIFF file with byte precision.
 """
 
-import sys
-import os
-import subprocess
-
-import glob
-
-from beatbox.vector import Vector
-from beatbox.raster import Raster
-
 #
 # Be verbose by default
 #
 
 import logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
+
+import sys
+import os
+import subprocess
+
+import glob
+import numpy as np
+
+from beatbox.vector import Vector
+from beatbox.raster import Raster
 
 #
 #
@@ -97,24 +98,35 @@ def gdal_merge(**kwargs):
   Wrapper for gdal_merge
   """
   GEOTIFF_SEGMENTS_DIR = kwargs.get('geotiff_segments_path', args.splits_target_dir)
-  
+
   logger.debug("Calling gdal_merge.py -ot Byte -o " + args.outfile + " using our prediction segments in : "+ GEOTIFF_SEGMENTS_DIR)
-  
+
   merge_runner = ["gdal_merge.py",'-ot','Byte', '-o', args.outfile]
   merge_runner = merge_runner + glob.glob(os.path.join(GEOTIFF_SEGMENTS_DIR,'*_prediction.tif'))
 
   subprocess.run(merge_runner)
 
+def binary_reclassify(**kwargs):
+  dst_array = np.zeros(shape=kwargs.get('np_array').shape, dtype=np.int8)
+  for v_match in kwargs.get('match_values'):
+    dst_array[np.where( kwargs.get('np_array') == v_match )] = 1
+  return(dst_array)
+
 def gdal_aggregate_sum_by_usng_unit(**kwargs):
   """
-  Wrapper for gdal/beatbox that 
+  Wrapper for gdal that will perform a binary reclassification and then
+  use a vector dataset to calculate the 'sum' (count) of target pixels
+  within user-specified vector features
   """
-  VECTOR_GEOMETRIES = kwargs.get('usng_units', None)
-  GEOTIFF_PREDICTION_RASTER = kwargs.get('geotiff_segment', None)
+  VECTOR_GEOMETRIES = kwargs.get('usng_units')
+  GEOTIFF_PREDICTION_RASTER = kwargs.get('geotiff_segment')
   TARGET_VALUES = kwargs.get('target_values', [1,2])
-  
+
   vector_units = Vector(VECTOR_GEOMETRIES).to_geodataframe()
   prediction_raster = Raster(GEOTIFF_PREDICTION_RASTER).to_georaster()
+
+  prediction_raster.array = binary_reclassify(np_array=prediction_raster.array, match_values=TARGET_VALUES)
+  return prediction_raster.stats(vector_units, stat='sum')
 
 #
 # Main
@@ -140,7 +152,7 @@ if __name__ == "__main__":
   if len(dig_path(path=os.path.join(args.geotiff_dir_path, args.splits_target_dir))) == 0:
     logger.debug("gdal_retile target 'splits' directory didn't appear to contain any GeoTIFF files -- this shouldn't happen; quitting")
     sys.exit(1)
-  
+
   rf_predict(geotiff_segments_path=os.path.join(args.geotiff_dir_path, args.splits_target_dir))
 
   if len(dig_path(path=os.path.join(args.geotiff_dir_path, args.splits_target_dir), extension_pattern='*_prediction.tif')) < 1 :

@@ -32,6 +32,7 @@ result <- parallel::parLapply(
   fun=function(r){
     suppressMessages(require(raster))
     cat("DEBUG: Processing image: ", r, "\n")
+    
     if(grepl(r, pattern="mesq")){
       high_class <- 3
       low_class <- 4
